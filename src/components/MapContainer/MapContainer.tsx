@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { fromLonLat } from 'ol/proj'
 import { GoogleSpreadsheet } from 'google-spreadsheet'
+
+import axios from 'axios'
 import Map from './Map'
 import './contain.css'
 import config from '../../config/config'
@@ -13,43 +15,30 @@ doc.useApiKey(config.apiKey)
 
 const MapContainer: React.FC = () => {
   const [coordinates, setCoordinates] = useState([[0, 0]])
+  // eslint-disable-next-line
+  const [sightings, setSightings] = useState([{ latitude: 0, longitude: 0, type: '', comment: '' }])
   const [googleSheetcoordinates, setgoogleSheetcoordinates] = useState([[0, 0]])
   const [zoom, setZoom] = useState(0)
   const [center, setCenter] = useState([0, 0])
   const [showLayer, setShowLayer] = useState(true)
 
   useEffect(function effectFunction() {
-    async function loadSpreadsheet() {
-      try {
-        await doc.loadInfo()
-        const sheet = doc.sheetsByIndex[0]
-
-        setCoordinates([
-          [-122.76045, 48.13569], // Port Townsend
-          [-122.6039, 48.03371], // Bush Point
-          [-123.17357, 48.55833], // Orcasound Lab
-          // [-122.4544, 47.3365],
-          // [-122.4768, 47.7365],
-          // [-122.4108, 47.7365],
-        ])
-        setZoom(9)
-        setCenter([-122.4713, 47.7237])
-
-        // TODO: this currently returns a single row from a sheet with 2+ entries, so only one map point is returned from sheets.
-        const rows = await sheet.getRows()
-
-        for (let i = 0; rows[i] != null && i < sheet.rowCount; i++) {
-          setgoogleSheetcoordinates((coordinatesheet) => [
-            ...coordinatesheet,
-            [rows[i].longitude, rows[i].latitude],
-          ])
+    try {
+      axios.get(`https://acartia.io/api/v1/sightings/current`).then((res) => {
+        const setType = new Set()
+        const test = []
+        for (let i = 0; i < res.data.length; i++) {
+          test.push([res.data[i].longitude, res.data[i].latitude])
+          setType.add(res.data[i].type)
         }
-      } catch (err) {
-        // eslint-disable-next-line
-        console.log(err)
-      }
+        setCoordinates(test)
+        setSightings(res.data)
+        console.log(setType.size)
+        console.log(setType)
+      })
+    } catch (error) {
+      console.log(error)
     }
-    loadSpreadsheet()
   }, [])
 
   return (
@@ -78,9 +67,14 @@ const MapContainer: React.FC = () => {
         <Map center={fromLonLat(center)} zoom={zoom}>
           <Layers>
             <TileLayer zIndex={0} />
-            {showLayer && <VectorLayer coordinates={coordinates} zIndex={0} />}
+            {showLayer && (
+              <VectorLayer
+                coordinates={coordinates}
+                zIndex={0}
+                sightings={sightings}
+              />
+            )}
           </Layers>
-
           <Controls>
             <FullScreenControl />
           </Controls>
@@ -96,24 +90,6 @@ const MapContainer: React.FC = () => {
       >
         Google Sheets Coordinates
       </h3>
-
-      <div className="setsides">
-        <Map center={fromLonLat(center)} zoom={zoom}>
-          <Layers>
-            <TileLayer zIndex={0} />
-            {showLayer && (
-              <GoogleSheetsLayer
-                coordinates={googleSheetcoordinates}
-                zIndex={0}
-              />
-            )}
-          </Layers>
-
-          <Controls>
-            <FullScreenControl />
-          </Controls>
-        </Map>
-      </div>
     </>
   )
 }
