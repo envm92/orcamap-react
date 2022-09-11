@@ -17,7 +17,6 @@ const MapContainer: React.FC = () => {
   const [coordinates, setCoordinates] = useState([[0, 0]])
   // eslint-disable-next-line
   const [sightings, setSightings] = useState([{ latitude: 0, longitude: 0, type: '', comment: '' }])
-  const [googleSheetcoordinates, setgoogleSheetcoordinates] = useState([[0, 0]])
   const [zoom, setZoom] = useState(0)
   const [center, setCenter] = useState([0, 0])
   const [showLayer, setShowLayer] = useState(true)
